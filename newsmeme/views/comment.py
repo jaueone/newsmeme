@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from flask import Module, redirect, flash, g, jsonify, current_app
 
-from flaskext.mail import Message
-from flaskext.babel import gettext as _
+from flask.ext.mail import Message
+from flask.ext.babel import gettext as _
 
 from newsmeme import signals
 from newsmeme.helpers import render_template
@@ -11,6 +14,7 @@ from newsmeme.forms import CommentForm, CommentAbuseForm
 from newsmeme.extensions import db, mail
 
 comment = Module(__name__)
+
 
 @comment.route("/<int:comment_id>/edit/", methods=("GET", "POST"))
 @auth.require(401)
@@ -22,7 +26,7 @@ def edit(comment_id):
     form = CommentForm(obj=comment)
 
     if form.validate_on_submit():
-        
+
         form.populate_obj(comment)
 
         db.session.commit()
@@ -30,10 +34,11 @@ def edit(comment_id):
         flash(_("Your comment has been updated"), "success")
 
         return redirect(comment.url)
-    
+
     return render_template("comment/edit_comment.html",
                            comment=comment,
                            form=form)
+
 
 @comment.route("/<int:comment_id>/delete/", methods=("POST",))
 @auth.require(401)
@@ -50,6 +55,7 @@ def delete(comment_id):
     return jsonify(success=True,
                    comment_id=comment_id)
 
+
 @comment.route("/<int:comment_id>/abuse/", methods=("GET", "POST",))
 @auth.require(401)
 def report_abuse(comment_id):
@@ -63,16 +69,16 @@ def report_abuse(comment_id):
         if admins:
 
             body = render_template("emails/report_abuse.html",
-                               comment=comment,
-                               complaint=form.complaint.data)
-            
+                                   comment=comment,
+                                   complaint=form.complaint.data)
+
             message = Message(subject="Report Abuse",
                               body=body,
                               sender=g.user.email,
                               recipients=admins)
 
             mail.send(message)
-            
+
         flash(_("Your report has been sent to the admins"), "success")
 
         return redirect(comment.url)
@@ -80,6 +86,7 @@ def report_abuse(comment_id):
     return render_template("comment/report_abuse.html",
                            comment=comment,
                            form=form)
+
 
 @comment.route("/<int:comment_id>/upvote/", methods=("POST",))
 @auth.require(401)
@@ -97,7 +104,7 @@ def _vote(comment_id, score):
 
     comment = Comment.query.get_or_404(comment_id)
     comment.permissions.vote.test(403)
-    
+
     comment.score += score
     comment.author.karma += score
 

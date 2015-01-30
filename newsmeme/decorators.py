@@ -1,6 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import functools
 
 from flask import g
+
 
 def keep_login_url(func):
     """
@@ -12,4 +16,3 @@ def keep_login_url(func):
         g.keep_login_url = True
         return func(*args, **kwargs)
     return wrapper
-

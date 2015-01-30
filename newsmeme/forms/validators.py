@@ -1,10 +1,11 @@
-from flaskext.wtf import regexp
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from flaskext.babel import lazy_gettext as _
+from wtforms.validators import Regexp
+
+from flask.ext.babel import lazy_gettext as _
 
 USERNAME_RE = r'^[\w.+-]+$'
 
-is_username = regexp(USERNAME_RE, 
+is_username = Regexp(USERNAME_RE,
                      message=_("You can only use letters, numbers or dashes"))
-
-

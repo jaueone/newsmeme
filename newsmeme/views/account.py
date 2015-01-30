@@ -1,11 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import uuid
 
 from flask import Module, flash, request, g, current_app, \
     abort, redirect, url_for, session, jsonify
 
-from flaskext.mail import Message
-from flaskext.babel import gettext as _
-from flaskext.principal import identity_changed, Identity, AnonymousIdentity
+from flask.ext.mail import Message
+from flask.ext.babel import gettext as _
+from flask.ext.principal import identity_changed, Identity, AnonymousIdentity
 
 from newsmeme.forms import ChangePasswordForm, EditAccountForm, \
     DeleteAccountForm, LoginForm, SignupForm, RecoverPasswordForm
@@ -16,6 +19,7 @@ from newsmeme.extensions import db, mail
 from newsmeme.permissions import auth
 
 account = Module(__name__)
+
 
 @account.route("/login/", methods=("GET", "POST"))
 def login():
@@ -32,7 +36,7 @@ def login():
 
         if user and authenticated:
             session.permanent = form.remember.data
-            
+
             identity_changed.send(current_app._get_current_object(),
                                   identity=Identity(user.id))
 
@@ -41,13 +45,13 @@ def login():
             if openid:
                 user.openid = openid
                 db.session.commit()
-                
-                flash(_("Your OpenID has been attached to your account. "
-                      "You can now sign in with your OpenID."), "success")
 
+                flash(_("Your OpenID has been attached to your account. "
+                        "You can now sign in with your OpenID."), "success")
 
             else:
-                flash(_("Welcome back, %(name)s", name=user.username), "success")
+                flash(
+                    _("Welcome back, %(name)s", name=user.username), "success")
 
             next_url = form.next.data
 
@@ -62,13 +66,14 @@ def login():
 
     return render_template("account/login.html", form=form)
 
+
 @account.route("/signup/", methods=("GET", "POST"))
 def signup():
 
     form = SignupForm(next=request.args.get("next"))
 
     if form.validate_on_submit():
-        
+
         user = User()
         form.populate_obj(user)
 
@@ -108,11 +113,11 @@ def forgot_password():
     if form.validate_on_submit():
 
         user = User.query.filter_by(email=form.email.data).first()
-        
+
         if user:
             flash(_("Please see your email for instructions on "
-                  "how to access your account"), "success")
-            
+                    "how to access your account"), "success")
+
             user.activation_key = str(uuid.uuid4())
             db.session.commit()
 
@@ -121,10 +126,12 @@ def forgot_password():
 
             message = Message(subject=_("Recover your password"),
                               body=body,
+                              sender=current_app.config.get(
+                                  'DEFAULT_MAIL_SENDER'),
                               recipients=[user.email])
 
             mail.send(message)
-            
+
             return redirect(url_for("frontend.index"))
 
         else:
@@ -145,7 +152,7 @@ def change_password():
     elif 'activation_key' in request.values:
         user = User.query.filter_by(
             activation_key=request.values['activation_key']).first()
-    
+
     if user is None:
         abort(403)
 
@@ -160,16 +167,19 @@ def change_password():
 
         flash(_("Your password has been changed, "
                 "please log in again"), "success")
+        # 修改成功后,强制用户退出
+        identity_changed.send(current_app._get_current_object(),
+                              identity=AnonymousIdentity())
 
         return redirect(url_for("account.login"))
 
     return render_template("account/change_password.html", form=form)
-        
+
 
 @account.route("/edit/", methods=("GET", "POST"))
 @auth.require(401)
 def edit():
-    
+
     form = EditAccountForm(g.user)
 
     if form.validate_on_submit():
@@ -195,7 +205,7 @@ def delete():
 
         db.session.delete(g.user)
         db.session.commit()
-    
+
         identity_changed.send(current_app._get_current_object(),
                               identity=AnonymousIdentity())
 
@@ -209,7 +219,7 @@ def delete():
 @account.route("/follow/<int:user_id>/", methods=("POST",))
 @auth.require(401)
 def follow(user_id):
-    
+
     user = User.query.get_or_404(user_id)
     g.user.follow(user)
     db.session.commit()
@@ -219,6 +229,7 @@ def follow(user_id):
 
     mail.send_message(subject=_("%s is now following you" % g.user.username),
                       body=body,
+                      sender=current_app.config.get('DEFAULT_MAIL_SENDER'),
                       recipients=[user.email])
 
     return jsonify(success=True,
@@ -228,11 +239,10 @@ def follow(user_id):
 @account.route("/unfollow/<int:user_id>/", methods=("POST",))
 @auth.require(401)
 def unfollow(user_id):
-    
+
     user = User.query.get_or_404(user_id)
     g.user.unfollow(user)
     db.session.commit()
 
     return jsonify(success=True,
                    reload=True)
-

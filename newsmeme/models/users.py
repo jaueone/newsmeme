@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import hashlib
 
 from datetime import datetime
@@ -5,12 +8,13 @@ from datetime import datetime
 from werkzeug import generate_password_hash, check_password_hash, \
     cached_property
 
-from flaskext.sqlalchemy import BaseQuery
-from flaskext.principal import RoleNeed, UserNeed, Permission
+from flask.ext.sqlalchemy import BaseQuery
+from flask.ext.principal import RoleNeed, UserNeed, Permission
 
 from newsmeme.extensions import db
 from newsmeme.permissions import null
 from newsmeme.models.types import DenormalizedText
+
 
 class UserQuery(BaseQuery):
 
@@ -25,8 +29,8 @@ class UserQuery(BaseQuery):
         """
 
         try:
-            user = self.get(int(identity.name))
-        except ValueError:
+            user = self.get(int(identity.id))
+        except (ValueError, TypeError):
             user = None
 
         if user:
@@ -35,11 +39,11 @@ class UserQuery(BaseQuery):
         identity.user = user
 
         return user
- 
+
     def authenticate(self, login, password):
-        
-        user = self.filter(db.or_(User.username==login,
-                                  User.email==login)).first()
+
+        user = self.filter(db.or_(User.username == login,
+                                  User.email == login)).first()
 
         if user:
             authenticated = user.check_password(password)
@@ -50,7 +54,7 @@ class UserQuery(BaseQuery):
 
     def authenticate_openid(self, email, openid):
 
-        user = self.filter(User.email==email).first()
+        user = self.filter(User.email == email).first()
 
         if user:
             authenticated = user.check_openid(openid)
@@ -61,7 +65,7 @@ class UserQuery(BaseQuery):
 
 
 class User(db.Model):
-    
+
     __tablename__ = "users"
 
     query_class = UserQuery
@@ -80,8 +84,8 @@ class User(db.Model):
     role = db.Column(db.Integer, default=MEMBER)
     receive_email = db.Column(db.Boolean, default=False)
     email_alerts = db.Column(db.Boolean, default=False)
-    followers = db.Column(DenormalizedText)
-    following = db.Column(DenormalizedText)
+    followers = db.Column(DenormalizedText())
+    following = db.Column(DenormalizedText())
 
     _password = db.Column("password", db.String(80))
     _openid = db.Column("openid", db.String(80), unique=True)
@@ -123,7 +127,7 @@ class User(db.Model):
     def _set_password(self, password):
         self._password = generate_password_hash(password)
 
-    password = db.synonym("_password", 
+    password = db.synonym("_password",
                           descriptor=property(_get_password,
                                               _set_password))
 
@@ -138,9 +142,9 @@ class User(db.Model):
     def _set_openid(self, openid):
         self._openid = generate_password_hash(openid)
 
-    openid = db.synonym("_openid", 
-                          descriptor=property(_get_openid,
-                                              _set_openid))
+    openid = db.synonym("_openid",
+                        descriptor=property(_get_openid,
+                                            _set_openid))
 
     def check_openid(self, openid):
         if self.openid is None:
@@ -184,16 +188,25 @@ class User(db.Model):
         return User.query.filter(User.id.in_(self.friends))
 
     def follow(self, user):
-        
-        user.followers.add(self.id)
-        self.following.add(user.id)
+        followers_copy = user.followers.copy()
+        following_copy = self.following.copy()
+
+        followers_copy.add(self.id)
+        following_copy.add(user.id)
+        # 赋值
+        user.followers = followers_copy.copy()
+        self.following = following_copy.copy()
 
     def unfollow(self, user):
         if self.id in user.followers:
-            user.followers.remove(self.id)
+            followers_copy = user.followers.copy()
+            followers_copy.remove(self.id)
+            user.followers = followers_copy.copy()
 
         if user.id in self.following:
-            self.following.remove(user.id)
+            following_copy = self.following.copy()
+            following_copy.remove(user.id)
+            self.following = following_copy.copy()
 
     def get_following(self):
         """
@@ -229,5 +242,3 @@ class User(db.Model):
 
         return "http://www.gravatar.com/avatar/%s.jpg?s=%d" % (
             self.gravatar, size)
-
- 

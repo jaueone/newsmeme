@@ -1,7 +1,10 @@
-from flask import Module, url_for, g, redirect, flash
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-from flaskext.mail import Message
-from flaskext.babel import gettext as _
+from flask import Module, url_for, g, redirect, flash, current_app
+
+from flask.ext.mail import Message
+from flask.ext.babel import gettext as _
 
 from newsmeme.helpers import render_template, cached
 from newsmeme.models import Post, User, Comment
@@ -11,6 +14,7 @@ from newsmeme.extensions import mail
 from newsmeme.permissions import auth
 
 user = Module(__name__)
+
 
 @user.route("/message/<int:user_id>/", methods=("GET", "POST"))
 @auth.require(401)
@@ -28,17 +32,19 @@ def send_message(user_id):
                                subject=form.subject.data,
                                message=form.message.data)
 
-        subject = _("You have received a message from %(name)s", 
+        subject = _("You have received a message from %(name)s",
                     name=g.user.username)
 
         message = Message(subject=subject,
                           body=body,
+                          sender=current_app.config.get(
+                              'DEFAULT_MAIL_SENDER'),
                           recipients=[user.email])
 
         mail.send(message)
 
-        flash(_("Your message has been sent to %(name)s", 
-               name=user.username), "success")
+        flash(_("Your message has been sent to %(name)s",
+                name=user.username), "success")
 
         return redirect(url_for("user.posts", username=user.username))
 
@@ -55,7 +61,7 @@ def posts(username, page=1):
 
     page_obj = Post.query.filter_by(author=user).restricted(g.user).\
         as_list().paginate(page, Post.PER_PAGE)
-    
+
     page_url = lambda page: url_for('user.posts',
                                     username=username,
                                     page=page)
@@ -82,7 +88,7 @@ def comments(username, page=1):
     page_obj = Comment.query.filter_by(author=user).\
         order_by(Comment.id.desc()).restricted(g.user).\
         paginate(page, Comment.PER_PAGE)
-    
+
     page_url = lambda page: url_for('user.comments',
                                     username=username,
                                     page=page)
@@ -96,7 +102,6 @@ def comments(username, page=1):
                            num_comments=page_obj.total,
                            page_obj=page_obj,
                            page_url=page_url)
-
 
 
 @user.route("/<username>/followers/")
@@ -135,7 +140,7 @@ def following(username, page=1):
 
     num_comments = Comment.query.filter_by(author_id=user.id).\
         restricted(g.user).count()
-   
+
     following = user.get_following().order_by(User.username.asc())
 
     return render_template("user/following.html",
@@ -143,5 +148,3 @@ def following(username, page=1):
                            num_posts=num_posts,
                            num_comments=num_comments,
                            following=following)
-
-

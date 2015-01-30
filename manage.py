@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # -*- coding: utf-8 -*-
 """
     manage.py
@@ -10,19 +13,19 @@
 """
 import sys
 import feedparser
-
 from flask import current_app
 
-from flaskext.script import Manager, prompt, prompt_pass, \
+from flask.ext.script import Manager, prompt, prompt_pass, \
     prompt_bool, prompt_choices
 
-from flaskext.mail import Message
+from flask.ext.mail import Message
 
 from newsmeme import create_app
 from newsmeme.extensions import db, mail
 from newsmeme.models import Post, User, Comment, Tag
 
 manager = Manager(create_app)
+
 
 @manager.option("-u", "--url", dest="url", help="Feed URL")
 @manager.option("-n", "--username", dest="username", help="Save to user")
@@ -44,6 +47,7 @@ def importfeed(url, username):
         db.session.add(post)
     db.session.commit()
 
+
 @manager.option('-u', '--username', dest="username", required=False)
 @manager.option('-p', '--password', dest="password", required=False)
 @manager.option('-e', '--email', dest="email", required=False)
@@ -52,11 +56,11 @@ def createuser(username=None, password=None, email=None, role=None):
     """
     Create a new user
     """
-    
+
     if username is None:
         while True:
             username = prompt("Username")
-            user = User.query.filter(User.username==username).first()
+            user = User.query.filter(User.username == username).first()
             if user is not None:
                 print "Username %s is already taken" % username
             else:
@@ -65,7 +69,7 @@ def createuser(username=None, password=None, email=None, role=None):
     if email is None:
         while True:
             email = prompt("Email address")
-            user = User.query.filter(User.email==email).first()
+            user = User.query.filter(User.email == email).first()
             if user is not None:
                 print "Email %s is already taken" % email
             else:
@@ -80,7 +84,7 @@ def createuser(username=None, password=None, email=None, role=None):
                 print "Passwords do not match"
             else:
                 break
-    
+
     roles = (
         (User.MEMBER, "member"),
         (User.MODERATOR, "moderator"),
@@ -104,20 +108,22 @@ def createuser(username=None, password=None, email=None, role=None):
 @manager.command
 def createall():
     "Creates database tables"
-    
+
     db.create_all()
+
 
 @manager.command
 def dropall():
     "Drops all database tables"
-    
+
     if prompt_bool("Are you sure ? You will lose all your data !"):
         db.drop_all()
+
 
 @manager.command
 def mailall():
     "Sends an email to all users"
-    
+
     subject = prompt("Subject")
     message = prompt("Message")
     from_address = prompt("From", default="support@thenewsmeme.com")
@@ -134,7 +140,7 @@ def mailall():
 
 @manager.shell
 def make_shell_context():
-    return dict(app=current_app, 
+    return dict(app=current_app,
                 db=db,
                 Post=Post,
                 User=User,

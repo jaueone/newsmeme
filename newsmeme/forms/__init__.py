@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
     forms.py
     ~~~~~~~~
@@ -10,7 +12,7 @@
 """
 
 from .account import LoginForm, SignupForm, EditAccountForm, \
-        RecoverPasswordForm, ChangePasswordForm, DeleteAccountForm
+    RecoverPasswordForm, ChangePasswordForm, DeleteAccountForm
 
 from .openid import OpenIdLoginForm, OpenIdSignupForm
 from .post import PostForm

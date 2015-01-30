@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import random
 
 from datetime import datetime
@@ -5,14 +8,15 @@ from datetime import datetime
 from werkzeug import cached_property
 
 from flask import url_for, Markup
-from flaskext.sqlalchemy import BaseQuery
-from flaskext.principal import Permission, UserNeed, Denial
+from flask.ext.sqlalchemy import BaseQuery
+from flask.ext.principal import Permission, UserNeed, Denial
 
 from newsmeme.extensions import db
 from newsmeme.helpers import slugify, domain, markdown
 from newsmeme.permissions import auth, moderator
 from newsmeme.models.types import DenormalizedText
 from newsmeme.models.users import User
+
 
 class PostQuery(BaseQuery):
 
@@ -25,7 +29,7 @@ class PostQuery(BaseQuery):
         Return restricted list of columns for list queries
         """
 
-        deferred_cols = ("description", 
+        deferred_cols = ("description",
                          "tags",
                          "author.email",
                          "author.password",
@@ -37,23 +41,22 @@ class PostQuery(BaseQuery):
                          "author.followers",
                          "author.following")
 
-
         options = [db.defer(col) for col in deferred_cols]
         return self.options(*options)
-        
+
     def deadpooled(self):
         return self.filter(Post.score <= 0)
 
     def popular(self):
         return self.filter(Post.score > 0)
-    
+
     def hottest(self):
         return self.order_by(Post.num_comments.desc(),
                              Post.score.desc(),
                              Post.id.desc())
 
     def public(self):
-        return self.filter(Post.access==Post.PUBLIC)
+        return self.filter(Post.access == Post.PUBLIC)
 
     def restricted(self, user=None):
         """
@@ -64,14 +67,14 @@ class PostQuery(BaseQuery):
         if user and user.is_moderator:
             return self
 
-        criteria = [Post.access==Post.PUBLIC]
+        criteria = [Post.access == Post.PUBLIC]
 
         if user:
-            criteria.append(Post.author_id==user.id)
+            criteria.append(Post.author_id == user.id)
             if user.friends:
-                criteria.append(db.and_(Post.access==Post.FRIENDS,
+                criteria.append(db.and_(Post.access == Post.FRIENDS,
                                         Post.author_id.in_(user.friends)))
-        
+
         return self.filter(reduce(db.or_, criteria))
 
     def search(self, keywords):
@@ -88,16 +91,15 @@ class PostQuery(BaseQuery):
                                    Post.tags.ilike(keyword),
                                    User.username.ilike(keyword)))
 
-
         q = reduce(db.and_, criteria)
-        
+
         return self.filter(q).join(User).distinct()
 
 
 class Post(db.Model):
 
     __tablename__ = "posts"
-    
+
     PUBLIC = 100
     FRIENDS = 200
     PRIVATE = 300
@@ -108,10 +110,10 @@ class Post(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    author_id = db.Column(db.Integer, 
-                          db.ForeignKey(User.id, ondelete='CASCADE'), 
+    author_id = db.Column(db.Integer,
+                          db.ForeignKey(User.id, ondelete='CASCADE'),
                           nullable=False)
-    
+
     title = db.Column(db.Unicode(200))
     description = db.Column(db.UnicodeText)
     link = db.Column(db.String(250))
@@ -124,8 +126,8 @@ class Post(db.Model):
     _tags = db.Column("tags", db.UnicodeText)
 
     author = db.relation(User, innerjoin=True, lazy="joined")
-    
-    __mapper_args__ = {'order_by' : id.desc()}
+
+    __mapper_args__ = {'order_by': id.desc()}
 
     class Permissions(object):
 
@@ -142,8 +144,8 @@ class Post(db.Model):
                 return Permission()
 
             if self.obj.access == Post.FRIENDS:
-                needs = [UserNeed(user_id) for user_id in \
-                            self.obj.author.friends]
+                needs = [UserNeed(user_id) for user_id in
+                         self.obj.author.friends]
 
                 return self.default & Permission(*needs)
 
@@ -188,26 +190,26 @@ class Post(db.Model):
         self.votes.add(user.id)
 
     def _get_tags(self):
-        return self._tags 
+        return self._tags
 
     def _set_tags(self, tags):
-        
+
         self._tags = tags
 
         if self.id:
             # ensure existing tag references are removed
-            d = db.delete(post_tags, post_tags.c.post_id==self.id)
+            d = db.delete(post_tags, post_tags.c.post_id == self.id)
             db.engine.execute(d)
 
         for tag in set(self.taglist):
 
             slug = slugify(tag)
 
-            tag_obj = Tag.query.filter(Tag.slug==slug).first()
+            tag_obj = Tag.query.filter(Tag.slug == slug).first()
             if tag_obj is None:
                 tag_obj = Tag(name=tag, slug=slug)
                 db.session.add(tag_obj)
-            
+
             if self not in tag_obj.posts:
                 tag_obj.posts.append(self)
 
@@ -227,8 +229,8 @@ class Post(db.Model):
         Returns the tags in the original order and format, 
         with link to tag page
         """
-        return [(tag, url_for('frontend.tag', 
-                              slug=slugify(tag))) \
+        return [(tag, url_for('frontend.tag',
+                              slug=slugify(tag)))
                 for tag in self.taglist]
 
     @cached_property
@@ -243,7 +245,7 @@ class Post(db.Model):
         Returns dict of safe attributes for passing into 
         a JSON request.
         """
-        
+
         return dict(post_id=self.id,
                     score=self.score,
                     title=self.title,
@@ -255,11 +257,11 @@ class Post(db.Model):
     @cached_property
     def access_name(self):
         return {
-                 Post.PUBLIC : "public",
-                 Post.FRIENDS : "friends",
-                 Post.PRIVATE : "private"
-               }.get(self.access, "public")
-        
+            Post.PUBLIC: "public",
+            Post.FRIENDS: "friends",
+            Post.PRIVATE: "private"
+        }.get(self.access, "public")
+
     def can_access(self, user=None):
         if self.access == self.PUBLIC:
             return True
@@ -280,10 +282,10 @@ class Post(db.Model):
         """
         from newsmeme.models.comments import Comment
 
-        comments = Comment.query.filter(Comment.post_id==self.id).all()
+        comments = Comment.query.filter(Comment.post_id == self.id).all()
 
         def _get_comments(parent, depth):
-            
+
             parent.comments = []
             parent.depth = depth
 
@@ -292,18 +294,17 @@ class Post(db.Model):
                     parent.comments.append(comment)
                     _get_comments(comment, depth + 1)
 
-
         parents = [c for c in comments if c.parent_id is None]
 
         for parent in parents:
             _get_comments(parent, 0)
 
         return parents
-        
+
     def _url(self, _external=False):
-        return url_for('post.view', 
-                       post_id=self.id, 
-                       slug=self.slug, 
+        return url_for('post.view',
+                       post_id=self.id,
+                       slug=self.slug,
                        _external=_external)
 
     @cached_property
@@ -324,13 +325,13 @@ class Post(db.Model):
 
 
 post_tags = db.Table("post_tags", db.Model.metadata,
-    db.Column("post_id", db.Integer, 
-              db.ForeignKey('posts.id', ondelete='CASCADE'), 
-              primary_key=True),
+                     db.Column("post_id", db.Integer,
+                               db.ForeignKey('posts.id', ondelete='CASCADE'),
+                               primary_key=True),
 
-    db.Column("tag_id", db.Integer, 
-              db.ForeignKey('tags.id', ondelete='CASCADE'),
-              primary_key=True))
+                     db.Column("tag_id", db.Integer,
+                               db.ForeignKey('tags.id', ondelete='CASCADE'),
+                               primary_key=True))
 
 
 class TagQuery(BaseQuery):
@@ -351,7 +352,7 @@ class TagQuery(BaseQuery):
 
         for tag in tags:
             tag.size = int(tag.num_posts / diff)
-            if tag.size < 1: 
+            if tag.size < 1:
                 tag.size = 1
 
         random.shuffle(tags)
@@ -362,7 +363,7 @@ class TagQuery(BaseQuery):
 class Tag(db.Model):
 
     __tablename__ = "tags"
-    
+
     query_class = TagQuery
 
     id = db.Column(db.Integer, primary_key=True)
@@ -370,7 +371,7 @@ class Tag(db.Model):
     posts = db.dynamic_loader(Post, secondary=post_tags, query_class=PostQuery)
 
     _name = db.Column("name", db.Unicode(80), unique=True)
-    
+
     def __str__(self):
         return self.name
 
@@ -388,9 +389,7 @@ class Tag(db.Model):
         return url_for("frontend.tag", slug=self.slug)
 
     num_posts = db.column_property(
-        db.select([db.func.count(post_tags.c.post_id)]).\
-            where(db.and_(post_tags.c.tag_id==id,
-                          Post.id==post_tags.c.post_id,
-                          Post.access==Post.PUBLIC)).as_scalar())
-
-
+        db.select([db.func.count(post_tags.c.post_id)]).
+        where(db.and_(post_tags.c.tag_id == id,
+                      Post.id == post_tags.c.post_id,
+                      Post.access == Post.PUBLIC)).as_scalar())

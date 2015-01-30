@@ -1,22 +1,25 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flaskext.wtf import Form, TextAreaField, SubmitField, required
-from flaskext.babel import lazy_gettext as _
+
+from flask_wtf import Form
+from wtforms import TextAreaField, SubmitField
+from wtforms.validators import Required
+from flask.ext.babel import lazy_gettext as _
+
 
 class CommentForm(Form):
 
     comment = TextAreaField(validators=[
-                            required(message=_("Comment is required"))])
+                            Required(message=_("Comment is required"))])
 
     submit = SubmitField(_("Save"))
     cancel = SubmitField(_("Cancel"))
 
-   
+
 class CommentAbuseForm(Form):
 
     complaint = TextAreaField("Complaint", validators=[
-                              required(message=\
-                                       _("You must enter the details"
-                                         " of the complaint"))])
-
+                              Required(message=_("You must enter the details"
+                                                 " of the complaint"))])
 
     submit = SubmitField(_("Send"))

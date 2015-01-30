@@ -1,9 +1,14 @@
-from sqlalchemy import types
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-class DenormalizedText(types.MutableType, types.TypeDecorator):
+from sqlalchemy.types import TypeDecorator, Text
+
+
+class DenormalizedText(TypeDecorator):
+
     """
-    Stores denormalized primary keys that can be 
-    accessed as a set. 
+    Stores denormalized primary keys that can be
+    accessed as a set.
 
     :param coerce: coercion function that ensures correct
                    type is returned
@@ -11,13 +16,13 @@ class DenormalizedText(types.MutableType, types.TypeDecorator):
     :param separator: separator character
     """
 
-    impl = types.Text
+    impl = Text
 
     def __init__(self, coerce=int, separator=" ", **kwargs):
 
         self.coerce = coerce
         self.separator = separator
-        
+
         super(DenormalizedText, self).__init__(**kwargs)
 
     def process_bind_param(self, value, dialect):
@@ -27,11 +32,10 @@ class DenormalizedText(types.MutableType, types.TypeDecorator):
         return value
 
     def process_result_value(self, value, dialect):
-         if not value:
+        if not value:
             return set()
-         return set(self.coerce(item) \
+        return set(self.coerce(item)
                    for item in value.split(self.separator))
-        
+
     def copy_value(self, value):
         return set(value)
-

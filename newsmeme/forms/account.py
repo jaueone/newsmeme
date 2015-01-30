@@ -1,47 +1,49 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flaskext.wtf import Form, HiddenField, BooleanField, TextField, \
-        PasswordField, SubmitField, TextField, RecaptchaField, \
-        ValidationError, required, email, equal_to, regexp
 
-from flaskext.babel import gettext, lazy_gettext as _ 
+from flask_wtf import Form, RecaptchaField
+from wtforms import HiddenField, BooleanField, TextField,\
+    PasswordField, SubmitField
+from wtforms.validators import ValidationError, Required, Email, EqualTo
+from flask.ext.babel import gettext, lazy_gettext as _
 
 from newsmeme.models import User
 from newsmeme.extensions import db
 
 from .validators import is_username
 
+
 class LoginForm(Form):
 
     next = HiddenField()
-    
+
     remember = BooleanField(_("Remember me"))
-    
-    login = TextField(_("Username or email address"), validators=[
-                      required(message=\
-                               _("You must provide an email or username"))])
+
+    login = TextField(_("Username or Email address"), validators=[
+                      Required(message=_("You must provide an Email or username"))])
 
     password = PasswordField(_("Password"))
 
     submit = SubmitField(_("Login"))
+
 
 class SignupForm(Form):
 
     next = HiddenField()
 
     username = TextField(_("Username"), validators=[
-                         required(message=_("Username required")), 
+                         Required(message=_("Username Required")),
                          is_username])
 
     password = PasswordField(_("Password"), validators=[
-                             required(message=_("Password required"))])
+                             Required(message=_("Password Required"))])
 
     password_again = PasswordField(_("Password again"), validators=[
-                                   equal_to("password", message=\
-                                            _("Passwords don't match"))])
+                                   EqualTo("password", message=_("Passwords don't match"))])
 
     email = TextField(_("Email address"), validators=[
-                      required(message=_("Email address required")), 
-                      email(message=_("A valid email address is required"))])
+                      Required(message=_("Email address Required")),
+                      Email(message=_("A valid Email address is Required"))])
 
     recaptcha = RecaptchaField(_("Copy the words appearing below"))
 
@@ -50,28 +52,27 @@ class SignupForm(Form):
     def validate_username(self, field):
         user = User.query.filter(User.username.like(field.data)).first()
         if user:
-            raise ValidationError, gettext("This username is taken")
+            raise ValidationError(message=gettext("This username is taken"))
 
     def validate_email(self, field):
         user = User.query.filter(User.email.like(field.data)).first()
         if user:
-            raise ValidationError, gettext("This email is taken")
+            raise ValidationError(message=gettext("This Email is taken"))
 
 
 class EditAccountForm(Form):
 
     username = TextField("Username", validators=[
-                         required(_("Username is required")), is_username])
+                         Required(_("Username is Required")), is_username])
 
-    email = TextField(_("Your email address"), validators=[
-                      required(message=_("Email address required")),
-                      email(message=_("A valid email address is required"))])
+    email = TextField(_("Your Email address"), validators=[
+                      Required(message=_("Email address Required")),
+                      Email(message=_("A valid Email address is Required"))])
 
-    receive_email = BooleanField(_("Receive private emails from friends"))
-    
-    email_alerts = BooleanField(_("Receive an email when somebody replies "
+    receive_email = BooleanField(_("Receive private Emails from friends"))
+
+    email_alerts = BooleanField(_("Receive an Email when somebody replies "
                                   "to your post or comment"))
-
 
     submit = SubmitField(_("Save"))
 
@@ -79,27 +80,27 @@ class EditAccountForm(Form):
         self.user = user
         kwargs['obj'] = self.user
         super(EditAccountForm, self).__init__(*args, **kwargs)
-        
+
     def validate_username(self, field):
         user = User.query.filter(db.and_(
                                  User.username.like(field.data),
-                                 db.not_(User.id==self.user.id))).first()
+                                 db.not_(User.id == self.user.id))).first()
 
         if user:
-            raise ValidationError, gettext("This username is taken")
+            raise ValidationError(message=gettext("This username is taken"))
 
     def validate_email(self, field):
         user = User.query.filter(db.and_(
                                  User.email.like(field.data),
-                                 db.not_(User.id==self.user.id))).first()
+                                 db.not_(User.id == self.user.id))).first()
         if user:
-            raise ValidationError, gettext("This email is taken")
+            raise ValidationError(message=gettext("This Email is taken"))
 
 
 class RecoverPasswordForm(Form):
 
-    email = TextField("Your email address", validators=[
-                      email(message=_("A valid email address is required"))])
+    email = TextField("Your Email address", validators=[
+                      Email(message=_("A valid Email address is Required"))])
 
     submit = SubmitField(_("Find password"))
 
@@ -109,19 +110,16 @@ class ChangePasswordForm(Form):
     activation_key = HiddenField()
 
     password = PasswordField("Password", validators=[
-                             required(message=_("Password is required"))])
-    
+                             Required(message=_("Password is Required"))])
+
     password_again = PasswordField(_("Password again"), validators=[
-                                   equal_to("password", message=\
-                                            _("Passwords don't match"))])
+                                   EqualTo("password", message=_("Passwords don't match"))])
 
     submit = SubmitField(_("Save"))
 
 
 class DeleteAccountForm(Form):
-    
+
     recaptcha = RecaptchaField(_("Copy the words appearing below"))
 
     submit = SubmitField(_("Delete"))
-
-

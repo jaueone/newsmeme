@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import sys
 
 from fabric.api import env, run, cd
@@ -59,5 +62,3 @@ def upgrade():
         run("workon %s; python setup.py develop -U" % settings.VIRTUALENV)
 
     reload()
-
-

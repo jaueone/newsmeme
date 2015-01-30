@@ -1,34 +1,36 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from flaskext.wtf import Form, TextField, TextAreaField, SubmitField, \
-        required, email
 
-from flaskext.babel import lazy_gettext as _
+from flask_wtf import Form
+from wtforms import TextField, TextAreaField, SubmitField
+from wtforms.validators import Required, Email
+from flask.ext.babel import lazy_gettext as _
+
 
 class ContactForm(Form):
 
     name = TextField(_("Your name"), validators=[
-                     required(message=_('Your name is required'))])
+                     Required(message=_('Your name is required'))])
 
     email = TextField(_("Your email address"), validators=[
-                      required(message=_("Email address required")),
-                      email(message=_("A valid email address is required"))])
+                      Required(message=_("Email address required")),
+                      Email(message=_("A valid email address is required"))])
 
     subject = TextField(_("Subject"), validators=[
-                        required(message=_("Subject required"))])
+                        Required(message=_("Subject required"))])
 
     message = TextAreaField(_("Message"), validators=[
-                            required(message=_("Message required"))])
+                            Required(message=_("Message required"))])
 
     submit = SubmitField(_("Send"))
+
 
 class MessageForm(Form):
 
     subject = TextField(_("Subject"), validators=[
-                        required(message=_("Subject required"))])
+                        Required(message=_("Subject required"))])
 
     message = TextAreaField(_("Message"), validators=[
-                            required(message=_("Message required"))])
+                            Required(message=_("Message required"))])
 
     submit = SubmitField(_("Send"))
-
-

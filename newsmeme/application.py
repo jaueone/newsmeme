@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """
     application.py
     ~~~~~~~~~~~
@@ -13,12 +15,11 @@ import logging
 
 from logging.handlers import SMTPHandler, RotatingFileHandler
 
-from flask import Flask, Response, request, g, \
-        jsonify, redirect, url_for, flash
+from flask import Flask, request, g, jsonify, redirect, url_for, flash
 
-from flaskext.babel import Babel, gettext as _
-from flaskext.themes import setup_themes
-from flaskext.principal import Principal, identity_loaded
+from flask.ext.babel import Babel, gettext as _
+from flask.ext.themes import setup_themes
+from flask.ext.principal import Principal, identity_loaded
 
 from newsmeme import helpers
 from newsmeme import views
@@ -41,6 +42,7 @@ DEFAULT_MODULES = (
     (views.openid, "/openid"),
     (views.api, "/api"),
 )
+
 
 def create_app(config=None, app_name=None, modules=None):
 
@@ -67,7 +69,7 @@ def create_app(config=None, app_name=None, modules=None):
 
 
 def configure_app(app, config):
-    
+
     app.config.from_object(DefaultConfig())
 
     if config is not None:
@@ -77,7 +79,7 @@ def configure_app(app, config):
 
 
 def configure_modules(app, modules):
-    
+
     for module, url_prefix in modules:
         app.register_module(module, url_prefix=url_prefix)
 
@@ -119,13 +121,13 @@ def configure_extensions(app):
     oid.init_app(app)
     cache.init_app(app)
 
-    setup_themes(app)
+    setup_themes(app, app_identifier='newsmeme')
 
     # more complicated setups
 
     configure_identity(app)
     configure_i18n(app)
-    
+
 
 def configure_identity(app):
 
@@ -142,8 +144,8 @@ def configure_i18n(app):
 
     @babel.localeselector
     def get_locale():
-        accept_languages = app.config.get('ACCEPT_LANGUAGES', 
-                                               ['en_gb'])
+        accept_languages = app.config.get('ACCEPT_LANGUAGES',
+                                          ['en_gb'])
 
         return request.accept_languages.best_match(accept_languages)
 
@@ -174,7 +176,7 @@ def configure_errorhandlers(app):
     @app.errorhandler(401)
     def unauthorized(error):
         if request.is_xhr:
-            return jsonfiy(error=_("Login required"))
+            return jsonify(error=_("Login required"))
         flash(_("Please login to see this page"), "error")
         return redirect(url_for("account.login", next=request.path))
 
@@ -186,12 +188,12 @@ def configure_logging(app):
     mail_handler = \
         SMTPHandler(app.config['MAIL_SERVER'],
                     'error@newsmeme.com',
-                    app.config['ADMINS'], 
+                    app.config['ADMINS'],
                     'application error',
                     (
                         app.config['MAIL_USERNAME'],
                         app.config['MAIL_PASSWORD'],
-                    ))
+        ))
 
     mail_handler.setLevel(logging.ERROR)
     app.logger.addHandler(mail_handler)
@@ -200,7 +202,7 @@ def configure_logging(app):
         '%(asctime)s %(levelname)s: %(message)s '
         '[in %(pathname)s:%(lineno)d]')
 
-    debug_log = os.path.join(app.root_path, 
+    debug_log = os.path.join(app.root_path,
                              app.config['DEBUG_LOG'])
 
     debug_file_handler = \
@@ -212,7 +214,7 @@ def configure_logging(app):
     debug_file_handler.setFormatter(formatter)
     app.logger.addHandler(debug_file_handler)
 
-    error_log = os.path.join(app.root_path, 
+    error_log = os.path.join(app.root_path,
                              app.config['ERROR_LOG'])
 
     error_file_handler = \
@@ -223,6 +225,3 @@ def configure_logging(app):
     error_file_handler.setLevel(logging.ERROR)
     error_file_handler.setFormatter(formatter)
     app.logger.addHandler(error_file_handler)
-
-
-

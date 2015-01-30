@@ -1,10 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 
 from werkzeug import cached_property
 
 from flask import Markup
-from flaskext.sqlalchemy import BaseQuery
-from flaskext.principal import Permission, UserNeed, Denial
+from flask.ext.sqlalchemy import BaseQuery
+from flask.ext.principal import Permission, UserNeed, Denial
 
 from newsmeme import signals
 from newsmeme.extensions import db
@@ -14,25 +17,26 @@ from newsmeme.models.posts import Post
 from newsmeme.models.users import User
 from newsmeme.models.types import DenormalizedText
 
+
 class CommentQuery(BaseQuery):
 
     def restricted(self, user):
 
         if user and user.is_moderator:
             return self
-       
+
         q = self.join(Post)
-        criteria = [Post.access==Post.PUBLIC]
+        criteria = [Post.access == Post.PUBLIC]
 
         if user:
-            criteria.append(Post.author_id==user.id)
+            criteria.append(Post.author_id == user.id)
             if user.friends:
-                criteria.append(db.and_(Post.access==Post.FRIENDS,
+                criteria.append(db.and_(Post.access == Post.FRIENDS,
                                         Post.author_id.in_(user.friends)))
-        
+
         return q.filter(reduce(db.or_, criteria))
 
-   
+
 class Comment(db.Model):
 
     __tablename__ = "comments"
@@ -42,16 +46,16 @@ class Comment(db.Model):
     query_class = CommentQuery
 
     id = db.Column(db.Integer, primary_key=True)
-    
-    author_id = db.Column(db.Integer, 
-                          db.ForeignKey(User.id, ondelete='CASCADE'), 
+
+    author_id = db.Column(db.Integer,
+                          db.ForeignKey(User.id, ondelete='CASCADE'),
                           nullable=False)
 
-    post_id = db.Column(db.Integer, 
-                        db.ForeignKey(Post.id, ondelete='CASCADE'), 
+    post_id = db.Column(db.Integer,
+                        db.ForeignKey(Post.id, ondelete='CASCADE'),
                         nullable=False)
 
-    parent_id = db.Column(db.Integer, 
+    parent_id = db.Column(db.Integer,
                           db.ForeignKey("comments.id", ondelete='CASCADE'))
 
     comment = db.Column(db.UnicodeText)
@@ -65,8 +69,8 @@ class Comment(db.Model):
 
     parent = db.relation('Comment', remote_side=[id])
 
-    __mapper_args__ = {'order_by' : id.asc()}
-    
+    __mapper_args__ = {'order_by': id.asc()}
+
     class Permissions(object):
 
         def __init__(self, obj):
@@ -92,7 +96,6 @@ class Comment(db.Model):
 
             return auth & Denial(*needs)
 
-   
     def __init__(self, *args, **kwargs):
         super(Comment, self).__init__(*args, **kwargs)
         self.votes = self.votes or set()
@@ -102,7 +105,9 @@ class Comment(db.Model):
         return self.Permissions(self)
 
     def vote(self, user):
-        self.votes.add(user.id)
+        votes_copy = self.votes.copy()
+        votes_copy.add(user.id)
+        self.votes = votes_copy.copy()
 
     def _url(self, _external=False):
         return '%s#comment-%d' % (self.post._url(_external), self.id)
@@ -121,13 +126,13 @@ class Comment(db.Model):
 
 # ------------- SIGNALS ----------------#
 
+
 def update_num_comments(sender):
     sender.num_comments = \
-        Comment.query.filter(Comment.post_id==sender.id).count()
-    
+        Comment.query.filter(Comment.post_id == sender.id).count()
+
     db.session.commit()
 
 
 signals.comment_added.connect(update_num_comments)
 signals.comment_deleted.connect(update_num_comments)
-
