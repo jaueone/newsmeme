@@ -54,4 +54,4 @@ newsmeme
 bug
 -------
 
-由于时间仓促，可能还存在未完全修复的地方，请直接 `new issues <https://github.com/sixu05202004/newsmeme/issues/new>`_ ，希望大家一起来努力维护该项目。
+由于时间仓促，可能还存在未完全修复的地方，请直接发送邮件 sixu05202004@gmail.com 或者 Pull Requests，希望大家一起来努力维护该项目。
