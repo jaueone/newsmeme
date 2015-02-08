@@ -55,3 +55,8 @@ bug
 -------
 
 由于时间仓促，可能还存在未完全修复的地方，请直接发送邮件 sixu05202004@gmail.com 或者 Pull Requests，希望大家一起来努力维护该项目。
+
+其他
+-------
+
+为了让大家更加理解 Flask 的蓝图的概念，也提供了蓝图版的 newsmeme，地址为：https://github.com/sixu05202004/newsmeme-blueprints。
