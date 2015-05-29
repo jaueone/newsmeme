@@ -23,7 +23,7 @@ newsmeme
 安装&运行
 -----------
 
-1. 安装所需要的插件: 
+1. 安装所需要的插件(请自行安装 MySQLdb): 
 
 	pip install -r requirements.txt
 
