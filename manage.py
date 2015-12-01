@@ -130,12 +130,12 @@ def mailall():
     if prompt_bool("Are you sure ? Email will be sent to everyone!"):
         with mail.connect() as conn:
             for user in User.query:
-                message = Message(subject=subject,
-                                  body=message,
-                                  sender=from_address,
-                                  recipients=[user.email])
+                msg = Message(subject=subject,
+                              body=message,
+                              sender=from_address,
+                              recipients=[user.email])
 
-                conn.send(message)
+                conn.send(msg)
 
 
 @manager.shell
