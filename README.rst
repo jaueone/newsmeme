@@ -59,4 +59,4 @@ bug
 其他
 -------
 
-为了让大家更加理解 Flask 的蓝图的概念，也提供了蓝图版的 newsmeme，地址为：https://github.com/sixu05202004/newsmeme-blueprints。
+为了让大家更加理解 Flask 的蓝图的概念，也提供了蓝图版的 newsmeme，代码位于：newsmeme-blueprints 文件夹下。
